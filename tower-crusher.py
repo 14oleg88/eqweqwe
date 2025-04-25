@@ -75,7 +75,7 @@ class Player(BaseSprite):
         super().__init__(image, x, y, width, height)
         self.right_image = self.image
         self.left_image = transform.flip(self.image, True, False)
-        self.speed_x = 10
+        self.speed_x = 3
         self.speed_y = 0
         self.max_speed = 20
         self.hp = 100
@@ -88,9 +88,14 @@ class Player(BaseSprite):
 
 
 
-    def fire(self):
-        bullet = Bullet(self.rect, fire_img, 3, 205)
-        self.bullets.add(bullet)
+    def attack(self):
+        coll_list = sprite.spritecollide(self, enemys, False, sprite.collide_mask)
+        for enemy in coll_list:
+            enemy.hp -= 20
+            player.score+=10
+            score_label.set_text(f"Score: {player.score}")
+            if enemy.hp <=0:
+                enemy.kill()
         fire_sound.play()
 
 
@@ -125,8 +130,8 @@ class Player(BaseSprite):
         coll_list = sprite.spritecollide(self, walls, False, sprite.collide_mask)
         if len(coll_list)>0:
             self.rect.x, self.rect.y = old_pos
-        coll_list = sprite.spritecollide(self, enemy_group , False, sprite.collide_mask)
-        if len(coll_list)>0:
+        coll_list = sprite.spritecollide(self, enemys , False, sprite.collide_mask)
+        if len(coll_list)>0 and not mouse.get_pressed()[0]:
             now = time.get_ticks()
             if now-self.damage_timer > 500:
                 self.damage_timer = time.get_ticks() #обнуляємо таймер дамагу
@@ -141,9 +146,10 @@ class Enemy (BaseSprite):
         super().__init__(image, x, y, width, height)  
         self.right_image = self.image  
         self.left_image = transform.flip(self.image, True, False)  
-        self.speed = 4
+        self.speed = 2
         self.dir_list = ['left', 'right', 'up', 'down']
         self.dir = random.choice(self.dir_list)
+        self.hp = 100
 
     def update(self):
         old_pos = self.rect.x, self.rect.y
@@ -303,9 +309,17 @@ while run:
             if e.key == K_ESCAPE:
                 run=False
 
+
+
     if not finish:
         all_sprites.update()
         now = time.get_ticks()
+    
+        if mouse.get_pressed()[0]:
+                now = time.get_ticks()
+                if now - player.fire_timer > 400:
+                    player.attack()
+                    player.fire_timer = now
         
 
         if player.hp<=0:
