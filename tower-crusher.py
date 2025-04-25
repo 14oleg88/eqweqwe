@@ -21,9 +21,10 @@ FONT = 'PressStart2P-Regular.ttf'
 
 #створи вікно гри
 FPS = 60
-scr_info = display.Info()
-WIDTH, HEIGHT = scr_info.current_w, scr_info.current_h
-window = display.set_mode((WIDTH, HEIGHT), flags=FULLSCREEN)
+TILE_SIZE = 50
+MAP_WIDTH, MAP_HEIGHT = 25, 15
+WIDTH, HEIGHT = TILE_SIZE*MAP_WIDTH, TILE_SIZE*MAP_HEIGHT
+window = display.set_mode((WIDTH, HEIGHT))
 display.set_caption("Catch up")
 
 clock = time.Clock()
@@ -31,8 +32,13 @@ clock = time.Clock()
 bg = image.load('map.png')
 bg = transform.scale(bg, (WIDTH, HEIGHT))
 player_img = image.load('Mini_PEKKA_2.webp')
+wall_img = image.load("map.png")
 enemy_img = image.load("Goblin_Cage_1.webp")
+water_img = image.load("map_97.png")
+mist_img = image.load("map1.png")
 fire_img = image.load("ddwzo4p-0108faf6-2508-479e-b29c-1bdc4f199d29.png")
+rock_img = image.load("pngtree-stone-boulder-cracked-surface-fractured-rock-gray-texture-green-moss-geometric-png-image_14306547.png")
+tree_img = image.load("pngtree-a-tall-green-tree-1-png-image_15490022.avif")
 fire_sound = mixer.Sound('mini-pekka-hit.mp3')
 fire_sound.set_volume(0.5)
 
@@ -80,6 +86,8 @@ class Player(BaseSprite):
         self.bullets = sprite.Group()
         self.fire_timer = time.get_ticks()
 
+
+
     def fire(self):
         bullet = Bullet(self.rect, fire_img, 3, 205)
         self.bullets.add(bullet)
@@ -114,7 +122,9 @@ class Player(BaseSprite):
 
         if not keys[K_w] and self.speed_y > 2:
                 self.speed_y -= 0.1
-
+        coll_list = sprite.spritecollide(self, walls, False, sprite.collide_mask)
+        if len(coll_list)>0:
+            self.rect.x, self.rect.y = old_pos
         coll_list = sprite.spritecollide(self, enemy_group , False, sprite.collide_mask)
         if len(coll_list)>0:
             now = time.get_ticks()
@@ -122,23 +132,39 @@ class Player(BaseSprite):
                 self.damage_timer = time.get_ticks() #обнуляємо таймер дамагу
                 self.hp -= 10 #віднімаємо HP
                 hp_label.set_text(f"hp: {self.hp}")
+        coll_list = sprite.spritecollide(self, water, False, sprite.collide_mask)
+        if len(coll_list)>0:
+            self.rect.x, self.rect.y = old_pos
 
-
-class Enemy(BaseSprite):
-    def __init__(self, image, width, height):
-        x = random.randint(0, WIDTH-width)
-        y = random.randint(400, HEIGHT) * -1
-        super().__init__(image, x, y, width, height)
-        self.speed_x = 10
-        self.speed_y = 2
-        self.max_speed = 20
-        self.hp = 100
-        self.rect.centerx = x
+class Enemy (BaseSprite):  
+    def __init__(self, image, x, y, width, height):  
+        super().__init__(image, x, y, width, height)  
+        self.right_image = self.image  
+        self.left_image = transform.flip(self.image, True, False)  
+        self.speed = 4
+        self.dir_list = ['left', 'right', 'up', 'down']
+        self.dir = random.choice(self.dir_list)
 
     def update(self):
-        self.rect.y += self.speed_y + player.speed_y
-        if self.rect.y > HEIGHT:
-            self.kill()
+        old_pos = self.rect.x, self.rect.y
+
+        if self.dir == 'left' and self.rect.x > 0:
+            self.rect.x -= self.speed
+            self.image = self.left_image
+        elif self.dir == 'right' :
+            self.rect.x += self.speed
+            self.image = self.right_image
+        elif self.dir == 'up':
+            self.rect.y -= self.speed
+        elif self.dir == 'down':
+            self.rect.y += self.speed
+
+        coll_list = sprite.spritecollide(self, walls, False, sprite.collide_mask)
+        coll_list2 = sprite.spritecollide(self, water, False, sprite.collide_mask) 
+        if len(coll_list)>0 or len(coll_list2)>0:
+            self.rect.x, self.rect.y = old_pos
+            self.dir = random.choice(self.dir_list)
+
 
 class Bullet(BaseSprite):
     def __init__(self, player_rect, image, width, height):
@@ -151,11 +177,42 @@ class Bullet(BaseSprite):
         self.rect.y -= self.speed_y
         if self.rect.y < 0:
             self.kill()
+player = Player(player_img, 200,300, TILE_SIZE-5, TILE_SIZE-5)
+result = Label("", 200, 300, fontSize=60)
+walls = sprite.Group()
+enemys = sprite.Group()
+water = sprite.Group()
+mist = sprite.Group()
+
+with open("map.txt", "r") as file:  
+    map = file.readlines()  
+    x, y = 0, 0  
+    for row in map:  
+        for symbol in row:  
+            symbol = symbol.upper()  
+            if symbol == 'W':  
+                walls.add(BaseSprite(wall_img, x, y, TILE_SIZE, TILE_SIZE))
+            if symbol == 'S':  
+                water.add(BaseSprite(tree_img, x, y, TILE_SIZE, TILE_SIZE)) 
+            if symbol == 'T':  
+                water.add(BaseSprite(water_img, x, y, TILE_SIZE, TILE_SIZE))
+            if symbol == 'F':  
+                mist.add(BaseSprite(mist_img, x, y, TILE_SIZE, TILE_SIZE)) 
+            if symbol == 'G':  
+                mist.add(BaseSprite(rock_img, x, y, TILE_SIZE, TILE_SIZE)) 
+            if symbol == 'E':  
+                enemys.add(Enemy(enemy_img, x, y, TILE_SIZE, TILE_SIZE))  
+            
+            if symbol == 'P':  
+                player.rect.x = x  
+                player.rect.y = y
+
+            x+=TILE_SIZE
+        x = 0
+        y+=TILE_SIZE
+run = True
 
 
-
-
-player = Player(player_img, WIDTH/2, HEIGHT-200, 110, 100)
 finish = False
 
 
@@ -188,7 +245,7 @@ def start_the_game():
     menu.disable()
 
 myimage = pygame_menu.baseimage.BaseImage(
-    image_path="background.jpg",
+    image_path="map.png",
     drawing_mode=pygame_menu.baseimage.IMAGE_MODE_REPEAT_XY,
 
 )
@@ -249,11 +306,7 @@ while run:
     if not finish:
         all_sprites.update()
         now = time.get_ticks()
-        if now - spawn_timer > random.randint(400, max_spawn_time):
-            spawn_timer = now
-            enemy_count = random.randint(1,3)
-            for i in range(enemy_count):
-                enemy_group.add(Enemy(enemy_img, 120, 80))
+        
 
         if player.hp<=0:
             finish = True
@@ -265,16 +318,10 @@ while run:
             player.score+=10
             score_label.set_text(f"Score: {player.score}")
 
-        bg1_y += player.speed_y
-        bg2_y += player.speed_y
-        if bg1_y > HEIGHT:
-            bg1_y = -HEIGHT
-        if bg2_y > HEIGHT:
-            bg2_y = -HEIGHT
+ 
     window.blit(bg, ((0,bg1_y)))
-    window.blit(bg, ((0,bg2_y)))
     all_sprites.draw(window)
     all_labels.draw(window)
-
+    player.draw(window)
     display.update()
     clock.tick(FPS)
