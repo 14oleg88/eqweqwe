@@ -38,7 +38,7 @@ water_img = image.load("map_97.png")
 mist_img = image.load("map1.png")
 fire_img = image.load("ddwzo4p-0108faf6-2508-479e-b29c-1bdc4f199d29.png")
 rock_img = image.load("pngtree-stone-boulder-cracked-surface-fractured-rock-gray-texture-green-moss-geometric-png-image_14306547.png")
-tree_img = image.load("pngtree-a-tall-green-tree-1-png-image_15490022.avif")
+tree_img = image.load("tree.png")
 fire_sound = mixer.Sound('mini-pekka-hit.mp3')
 fire_sound.set_volume(0.5)
 
@@ -192,9 +192,9 @@ with open("map.txt", "r") as file:
             symbol = symbol.upper()  
             if symbol == 'W':  
                 walls.add(BaseSprite(wall_img, x, y, TILE_SIZE, TILE_SIZE))
-            if symbol == 'S':  
-                water.add(BaseSprite(tree_img, x, y, TILE_SIZE, TILE_SIZE)) 
             if symbol == 'T':  
+                water.add(BaseSprite(tree_img, x, y, TILE_SIZE, TILE_SIZE)) 
+            if symbol == 'S':  
                 water.add(BaseSprite(water_img, x, y, TILE_SIZE, TILE_SIZE))
             if symbol == 'F':  
                 mist.add(BaseSprite(mist_img, x, y, TILE_SIZE, TILE_SIZE)) 
